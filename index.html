@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Froggy's Grammar Leap: Simple Present Tense</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lexend:wght@400;700&display=swap');
+        
+        body { 
+            font-family: 'Lexend', sans-serif; 
+            background: #e0f2f1; 
+            overflow: hidden;
+        }
+
+        .frog-font { font-family: 'Fredoka One', cursive; }
+        
+        .pond-bg {
+            background: linear-gradient(180deg, #4dd0e1 0%, #0097a7 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .water-wave {
+            position: absolute;
+            bottom: 0;
+            width: 200%;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 40%;
+            animation: wave 10s infinite linear;
+        }
+
+        @keyframes wave {
+            from { transform: translateX(0) rotate(0deg); }
+            to { transform: translateX(-50%) rotate(360deg); }
+        }
+
+        .floating { animation: float 3s ease-in-out infinite; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .jump-anim { animation: jump 0.5s ease-out; }
+        @keyframes jump {
+            0% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.2) translateY(-50px); }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        .shake { animation: shake 0.5s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+
+<div id="game-container" class="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border-8 border-white">
+    
+    <!-- Header: Stats -->
+    <div class="p-4 bg-green-500 text-white flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <span class="text-2xl">⭐</span>
+            <span id="score-display" class="font-bold text-xl">0</span>
+        </div>
+        <div class="bg-green-700 px-4 py-1 rounded-full text-xs font-bold uppercase">
+            Simple Present Tense
+        </div>
+    </div>
+
+    <!-- Play Area -->
+    <div class="pond-bg h-64 flex flex-col items-center justify-center relative">
+        <div class="water-wave"></div>
+        
+        <!-- Frog Character -->
+        <div id="frog-character" class="text-7xl floating relative z-10 transition-all duration-500">
+            🐸
+        </div>
+        
+        <!-- Lily Pad -->
+        <div class="w-32 h-8 bg-green-800 rounded-[50%] opacity-30 mt-2"></div>
+        
+        <div id="feedback-pop" class="absolute top-10 opacity-0 transition-all duration-300 font-bold text-white text-xl z-20">
+            YAY! +10
+        </div>
+    </div>
+
+    <!-- Question Area -->
+    <div id="quiz-screen" class="p-8 bg-white text-center">
+        <div class="mb-6">
+            <p id="question-text" class="text-lg font-bold text-slate-700 leading-tight">
+                "She ___ (go) to school every day."
+            </p>
+        </div>
+
+        <div id="options-grid" class="grid gap-3">
+            <!-- Options injected here -->
+        </div>
+
+        <div class="mt-8 flex justify-center gap-4">
+            <button onclick="toggleMusic()" id="music-btn" class="text-xs font-bold text-slate-400 uppercase flex items-center gap-1">
+                <span id="music-icon">🎵</span> Musik ON
+            </button>
+        </div>
+    </div>
+
+    <!-- Final Result (Hidden Initially) -->
+    <div id="final-screen" class="hidden p-10 text-center">
+        <div class="text-8xl mb-4">🏆</div>
+        <h2 class="frog-font text-3xl text-green-600 mb-2">Hebat!</h2>
+        <p class="text-slate-500 mb-6">Froggy berhasil melewati banyak teratai!</p>
+        <div class="text-5xl font-black text-slate-800 mb-8" id="final-score">0</div>
+        <button onclick="location.reload()" class="w-full py-4 bg-green-500 text-white font-bold rounded-2xl shadow-lg hover:bg-green-600 transition-transform active:scale-95">
+            MAIN LAGI
+        </button>
+    </div>
+
+</div>
+
+<script>
+    // --- Audio System ---
+    let audioCtx;
+    let musicOn = false;
+    let musicLoop;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.5, volume = 0.05) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function startMusic() {
+        if (musicOn) return;
+        musicOn = true;
+        const melody = [523.25, 587.33, 659.25, 698.46, 783.99]; // C5, D5, E5, F5, G5
+        let i = 0;
+        musicLoop = setInterval(() => {
+            if(musicOn) playTone(melody[i % melody.length], 'triangle', 0.4, 0.02);
+            i++;
+        }, 800);
+    }
+
+    function toggleMusic() {
+        initAudio();
+        if(musicOn) {
+            musicOn = false;
+            document.getElementById('music-icon').innerText = '🔇';
+            document.getElementById('music-btn').classList.add('text-red-400');
+        } else {
+            startMusic();
+            document.getElementById('music-icon').innerText = '🎵';
+            document.getElementById('music-btn').classList.remove('text-red-400');
+        }
+    }
+
+    // --- Game Logic ---
+    const bank = [
+        { q: "He ___ (play) football on Sundays.", a: ["plays", "play", "playing", "played"], c: 0 },
+        { q: "They ___ (not / like) spicy food.", a: ["doesn't like", "don't likes", "don't like", "not like"], c: 2 },
+        { q: "___ she drink milk every morning?", a: ["Do", "Does", "Is", "Are"], c: 1 },
+        { q: "The sun ___ (rise) in the east.", a: ["rise", "rises", "rising", "rosen"], c: 1 },
+        { q: "I usually ___ (get) up at 5 AM.", a: ["gets", "got", "get", "getting"], c: 2 },
+        { q: "We ___ (be) best friends.", a: ["is", "am", "are", "be"], c: 2 },
+        { q: "Does your cat ___ (sleep) on the sofa?", a: ["sleeps", "sleep", "sleeping", "slept"], c: 1 },
+        { q: "My father ___ (work) in a big office.", a: ["works", "work", "working", "worker"], c: 0 },
+        { q: "Do you ___ (know) the answer?", a: ["knows", "knowing", "know", "knew"], c: 2 },
+        { q: "She ___ (have) a beautiful garden.", a: ["have", "has", "haves", "having"], c: 1 },
+        { q: "It ___ (rain) a lot in January.", a: ["rains", "rain", "raining", "rainy"], c: 0 },
+        { q: "___ they live in Jakarta?", a: ["Does", "Do", "Are", "Is"], c: 1 },
+        { q: "Birds ___ (fly) in the sky.", a: ["flies", "fly", "flying", "flown"], c: 1 },
+        { q: "Tom ___ (watch) TV in the evening.", a: ["watchs", "watch", "watches", "watching"], c: 2 },
+        { q: "My mother ___ (wash) the dishes.", a: ["washs", "wash", "washing", "washes"], c: 3 },
+        { q: "The train ___ (arrive) at 7 PM.", a: ["arrive", "arriving", "arrives", "arrived"], c: 2 },
+        { q: "___ your brother like pizza?", a: ["Do", "Is", "Are", "Does"], c: 3 },
+        { q: "We often ___ (read) books together.", a: ["read", "reads", "reading", "reader"], c: 0 },
+        { q: "She ___ (not / study) on Saturdays.", a: ["don't study", "not studies", "doesn't study", "doesn't studies"], c: 2 },
+        { q: "Water ___ (boil) at 100 degrees.", a: ["boil", "boils", "boiling", "boiled"], c: 1 }
+    ];
+
+    let score = 0;
+    let currentQ = null;
+
+    function loadQuestion() {
+        const frog = document.getElementById('frog-character');
+        frog.classList.remove('jump-anim', 'shake');
+        
+        currentQ = bank[Math.floor(Math.random() * bank.length)];
+        document.getElementById('question-text').innerText = `"${currentQ.q}"`;
+        
+        const container = document.getElementById('options-grid');
+        container.innerHTML = '';
+        
+        currentQ.a.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = "w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-green-500 hover:bg-green-50 transition-all active:scale-95";
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(i, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(idx, btn) {
+        initAudio();
+        const frog = document.getElementById('frog-character');
+        const pop = document.getElementById('feedback-pop');
+        
+        if (idx === currentQ.c) {
+            // Benar
+            score += 10;
+            document.getElementById('score-display').innerText = score;
+            frog.classList.add('jump-anim');
+            playTone(880, 'sine', 0.2, 0.05); // Boing High
+            
+            pop.innerText = "YAY! +10";
+            pop.className = "absolute top-10 opacity-100 text-yellow-300 font-black text-2xl z-20 transition-all duration-300 transform -translate-y-10";
+            
+            setTimeout(() => {
+                pop.className = "absolute top-10 opacity-0 transition-all duration-300 font-bold text-white text-xl z-20";
+                loadQuestion();
+            }, 800);
+        } else {
+            // Salah
+            frog.classList.add('shake');
+            playTone(150, 'sawtooth', 0.4, 0.05); // Splash/Buzz
+            btn.classList.replace('border-slate-200', 'border-red-500');
+            btn.classList.add('bg-red-50');
+            
+            pop.innerText = "OH NO! 🌊";
+            pop.className = "absolute top-10 opacity-100 text-red-500 font-black text-2xl z-20 transition-all duration-300";
+            
+            setTimeout(() => {
+                pop.className = "absolute top-10 opacity-0 transition-all duration-300 font-bold text-white text-xl z-20";
+                loadQuestion();
+            }, 1000);
+        }
+    }
+
+    // Inisialisasi
+    window.onload = loadQuestion;
+</script>
+
+</body>
+</html>
